@@ -224,6 +224,8 @@ pub struct FakeHttpClient {
     handler: FakeHttpHandler,
 }
 
+pub struct NullHttpClient;
+
 #[cfg(feature = "test-support")]
 impl FakeHttpClient {
     pub fn create<Fut, F>(handler: F) -> Arc<HttpClientWithUrl>
@@ -274,6 +276,19 @@ impl HttpClient for FakeHttpClient {
     ) -> BoxFuture<'static, Result<Response<AsyncBody>, Error>> {
         let future = (self.handler)(req);
         Box::pin(async move { future.await.map(Into::into) })
+    }
+
+    fn proxy(&self) -> Option<&str> {
+        None
+    }
+}
+
+impl HttpClient for NullHttpClient {
+    fn send(
+        &self,
+        _req: Request<AsyncBody>,
+    ) -> BoxFuture<'static, Result<Response<AsyncBody>, Error>> {
+        Box::pin(async move { Err(isahc::error::ErrorKind::Unknown.into()) })
     }
 
     fn proxy(&self) -> Option<&str> {
